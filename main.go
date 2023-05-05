@@ -62,6 +62,8 @@ func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
 		res.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	res.Write([]byte("ok"))
 }
 
 func main() {
