@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: rex-7567-e27
-        uses: mbaraa/rex-action@v0.9
+        uses: mbaraa/rex-action@v1.0
         with:
           server-url: example.com
           token: ${{ secrets.REX_KEY }}
