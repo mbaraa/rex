@@ -69,6 +69,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	http.HandleFunc("/deploy", handleDeployRepo)
+	http.HandleFunc("/deploy/", handleDeployRepo)
 	http.ListenAndServe(":"+portNumber(), nil)
 }
