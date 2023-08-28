@@ -22,8 +22,8 @@ This will install Rex's server which will allow deploying your app
 
     [Service]
     Type=simple
-    User=yourusername # so that git will work, and the other docker stuff
-    WorkingDirectory=/path/to/rex/binary/and/env/file # they must be in the same directory, otherwise it won't work :)
+    User=yourusername # REMOVE THIS COMMENT; so that git will work, and the other docker stuff
+    WorkingDirectory=/path/to/rex/binary/and/env/file # REMOVE THIS COMMENT; they must be in the same directory, otherwise it won't work :)
     ExecStart=/path/to/rex/binary
     Restart=always
 
