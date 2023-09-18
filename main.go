@@ -1,21 +1,59 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
-
-	"github.com/joho/godotenv"
 )
 
-func rexKey() string         { return os.Getenv("REX_KEY") }
-func reposDir() string       { return os.Getenv("REPOS_DIR") }
-func portNumber() string     { return os.Getenv("PORT") }
-func allowedClients() string { return os.Getenv("ALLOWED_CLIENTS") }
+var (
+	rexKey         string
+	reposDir       string
+	portNumber     string
+	allowedOrigins string
+)
+
+func init() {
+	flag.StringVar(&rexKey, "rex-key", os.Getenv("REX_AUTH_KEY"), "give me a secure key to use the GitHub action with")
+	flag.StringVar(&reposDir, "repos-dir", os.Getenv("REX_REPOS_DIR"), "give me a proper directory path where your GitHub repos are stored in")
+	flag.StringVar(&portNumber, "port", getEnv("REX_PORT_NUMBER", "8080"), "give me a port number (default is 8080)")
+	flag.StringVar(&allowedOrigins, "allowed-origins", os.Getenv("REX_ALLOWED_ORIGINS"), "give me a list of allowed origins")
+}
+
+func main() {
+	http.HandleFunc("/deploy/", handleDeployRepo)
+	http.ListenAndServe(":"+portNumber, nil)
+}
+
+func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	res.Header().Set("Access-Control-Allow-Origin", allowedOrigins)
+
+	token := req.Header.Get("Authorization")
+	if token != rexKey {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	repoName := req.URL.Query().Get("name")
+	if len(repoName) == 0 {
+		res.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err := deployRepo(repoName)
+	if err != nil {
+		res.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	res.Write([]byte("ok"))
+}
 
 func deployRepo(repoName string) error {
-	repoDirectory := fmt.Sprintf("%s/%s", reposDir(), repoName)
+	repoDirectory := fmt.Sprintf("%s/%s", reposDir, repoName)
 
 	pull := exec.Command("git", "pull")
 	pull.Dir = repoDirectory
@@ -41,36 +79,9 @@ func deployRepo(repoName string) error {
 	return nil
 }
 
-func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	res.Header().Set("Access-Control-Allow-Origin", allowedClients())
-
-	token := req.Header.Get("Authorization")
-	if token != rexKey() {
-		res.WriteHeader(http.StatusUnauthorized)
-		return
+func getEnv(envName, fallbackValue string) string {
+	if value := os.Getenv(envName); value != "" {
+		return value
 	}
-
-	repoName := req.URL.Query().Get("name")
-	if len(repoName) == 0 {
-		res.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	err := deployRepo(repoName)
-	if err != nil {
-		res.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	res.Write([]byte("ok"))
-}
-
-func main() {
-	err := godotenv.Load()
-	if err != nil {
-		panic(err)
-	}
-	http.HandleFunc("/deploy/", handleDeployRepo)
-	http.ListenAndServe(":"+portNumber(), nil)
+	return fallbackValue
 }
