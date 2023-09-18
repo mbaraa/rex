@@ -18,7 +18,7 @@ var (
 func init() {
 	flag.StringVar(&rexKey, "rex-key", os.Getenv("REX_AUTH_KEY"), "give me a secure key to use the GitHub action with")
 	flag.StringVar(&reposDir, "repos-dir", os.Getenv("REX_REPOS_DIR"), "give me a proper directory path where your GitHub repos are stored in")
-	flag.StringVar(&portNumber, "port", getEnv("REX_PORT_NUMBER", "8080"), "give me a port number (default is 8080)")
+	flag.StringVar(&portNumber, "port", getEnv("REX_PORT_NUMBER", "7567"), "give me a port number (default is 7567)")
 	flag.StringVar(&allowedOrigins, "allowed-origins", os.Getenv("REX_ALLOWED_ORIGINS"), "give me a list of allowed origins")
 }
 

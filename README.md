@@ -15,10 +15,12 @@ This will install Rex's server which will allow deploying your app
 
 | Flag              | Env var               | Description                                                           |
 | ----------------- | --------------------- | --------------------------------------------------------------------- |
-| `port`            | `REX_PORT_NUMBER`     | Give me a port number. (default: `8080`)                              |
+| `port`            | `REX_PORT_NUMBER`     | Give me a port number. (default: `7567`)                              |
 | `rex-key`         | `REX_AUTH_KEY`        | Give me a secure key to use the GitHub action with                    |
 | `repos-dir`       | `REX_REPOS_DIR`       | Give me a proper directory path where your GitHub repos are stored in |
 | `allowed-origins` | `REX_ALLOWED_ORIGINS` | give me a list of allowed origins                                     |
+| `github-username` | `REX_GITHUB_USERNAME` | Give me your GitHub username so I can pull repos' changes             |
+| `github-token`    | `REX_GITHUB_TOKEN`    | Give me your GitHub token so I can pull repos' changes                |
 
 4.  Install the systemd service, since I haven't figured out how to make this fully work in docker :(
 
@@ -38,7 +40,7 @@ This will install Rex's server which will allow deploying your app
     [Install]
     WantedBy=multi-user.target
 
-6\. Reload systemd's daemons and start the server
+5. Reload systemd's daemons and start the server
 
 ```bash
 sudo systemctl daemon-reload
