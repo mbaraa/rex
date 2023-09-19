@@ -6,14 +6,16 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
 var (
-	rexKey         string
-	reposDir       string
-	portNumber     string
-	allowedOrigins string
+	rexKey            string
+	reposDir          string
+	portNumber        string
+	allowedOrigins    string
+	allowedOriginsMap = map[string]bool{}
 )
 
 func init() {
@@ -21,6 +23,7 @@ func init() {
 	flag.StringVar(&reposDir, "repos-dir", os.Getenv("REX_REPOS_DIR"), "give me a proper directory path where your GitHub repos are stored in")
 	flag.StringVar(&portNumber, "port", getEnv("REX_PORT_NUMBER", "7567"), "give me a port number (default is 7567)")
 	flag.StringVar(&allowedOrigins, "allowed-origins", os.Getenv("REX_ALLOWED_ORIGINS"), "give me a list of allowed origins")
+	parseAllowedOringins()
 }
 
 func main() {
@@ -28,9 +31,19 @@ func main() {
 	http.ListenAndServe(":"+portNumber, nil)
 }
 
+func parseAllowedOringins() {
+	_allowedOrigins := strings.Split(
+		regexp.MustCompile(`\s*,\s*`).ReplaceAllString(allowedOrigins, ","),
+		",",
+	)
+	for _, allowedOrigin := range _allowedOrigins {
+		allowedOriginsMap[allowedOrigin] = true
+	}
+}
+
 func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	if origin := req.Header.Get("Origin"); origin != "" && strings.Contains(allowedOrigins, req.Header.Get("Origin")) {
+	if origin := req.Header.Get("Origin"); allowedOriginsMap[origin] || allowedOriginsMap["*"] {
 		res.Header().Set("Access-Control-Allow-Origin", allowedOrigins)
 	}
 
