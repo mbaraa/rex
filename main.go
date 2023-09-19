@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 var (
@@ -29,7 +30,9 @@ func main() {
 
 func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	res.Header().Set("Access-Control-Allow-Origin", allowedOrigins)
+	if origin := req.Header.Get("Origin"); origin != "" && strings.Contains(allowedOrigins, req.Header.Get("Origin")) {
+		res.Header().Set("Access-Control-Allow-Origin", allowedOrigins)
+	}
 
 	token := req.Header.Get("Authorization")
 	if token != rexKey {
@@ -58,6 +61,13 @@ func deployRepo(repoName string) error {
 	pull := exec.Command("git", "pull")
 	pull.Dir = repoDirectory
 	err := pull.Run()
+	if err != nil {
+		return err
+	}
+
+	build := exec.Command("docker", "build")
+	build.Dir = repoDirectory
+	err = build.Run()
 	if err != nil {
 		return err
 	}
