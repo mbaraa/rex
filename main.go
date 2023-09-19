@@ -78,7 +78,7 @@ func deployRepo(repoName string) error {
 		return err
 	}
 
-	build := exec.Command("docker", "build")
+	build := exec.Command("docker", "compose", "build")
 	build.Dir = repoDirectory
 	err = build.Run()
 	if err != nil {
