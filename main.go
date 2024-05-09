@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -62,6 +63,7 @@ func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
 
 	logsText, err := deployRepo(repoName)
 	if err != nil {
+		log.Println(err)
 		res.WriteHeader(http.StatusInternalServerError)
 		res.Write(logsText)
 		return
