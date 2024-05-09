@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"net/http"
@@ -59,47 +60,54 @@ func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err := deployRepo(repoName)
+	logsText, err := deployRepo(repoName)
 	if err != nil {
 		res.WriteHeader(http.StatusInternalServerError)
+		res.Write(logsText)
 		return
 	}
 
-	res.Write([]byte("ok"))
+	res.Write(logsText)
 }
 
-func deployRepo(repoName string) error {
+func deployRepo(repoName string) ([]byte, error) {
 	repoDirectory := fmt.Sprintf("%s/%s", reposDir, repoName)
 
+	outBuff := bytes.NewBuffer([]byte{})
+
 	pull := exec.Command("git", "pull")
+	pull.Stdout = outBuff
 	pull.Dir = repoDirectory
 	err := pull.Run()
 	if err != nil {
-		return err
+		return outBuff.Bytes(), err
 	}
 
 	build := exec.Command("docker", "compose", "build")
+	build.Stdout = outBuff
 	build.Dir = repoDirectory
 	err = build.Run()
 	if err != nil {
-		return err
+		return outBuff.Bytes(), err
 	}
 
 	composeDown := exec.Command("docker", "compose", "down", "--volumes", "--rmi", "local")
+	composeDown.Stdout = outBuff
 	composeDown.Dir = repoDirectory
 	err = composeDown.Run()
 	if err != nil {
-		return err
+		return outBuff.Bytes(), err
 	}
 
 	composeUp := exec.Command("docker", "compose", "up", "-d")
+	composeUp.Stdout = outBuff
 	composeUp.Dir = repoDirectory
 	err = composeUp.Run()
 	if err != nil {
-		return err
+		return outBuff.Bytes(), err
 	}
 
-	return nil
+	return outBuff.Bytes(), nil
 }
 
 func getEnv(envName, fallbackValue string) string {
