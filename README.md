@@ -9,9 +9,9 @@ This will install Rex's server which will allow deploying your app
 1.  You can use the latest binary release in the [releases](https://github.com/mbaraa/rex/releases)
 2.  Or if that doesn't work, compile it yourself using
     - `go build -ldflags="-w -s"`
-3.  Set the environmetal variables as showm in the `.env.example`
-    - Either use flags when running the server, or set the environmetal variable manually.
-    - Values' are taken from flags, if it doesn't exist it uses the corresponding environmetal variable.
+3.  Set the environmental variables as showm in the `.env.example`
+    - Either use flags when running the server, or set the environmental variable manually.
+    - Values' are taken from flags, if it doesn't exist it uses the corresponding environmental variable.
 
 | Flag              | Env var               | Description                                                           |
 | ----------------- | --------------------- | --------------------------------------------------------------------- |
@@ -33,7 +33,7 @@ This will install Rex's server which will allow deploying your app
     [Service]
     Type=simple
     User=yourusername # REMOVE THIS COMMENT; so that git will work, and the other docker stuff
-    EnvironmentFile=/path/to/rex/.env_file # REMOVE THIS COMMENT; let systemd handle parsing the environmetal variables
+    EnvironmentFile=/path/to/rex/.env_file # REMOVE THIS COMMENT; let systemd handle parsing the environmental variables
     WorkingDirectory=/path/to/rex/ # REMOVE THIS COMMENT; they must be in the same directory, otherwise it won't work :)
     ExecStart=/path/to/rex/binary
     Restart=always
@@ -62,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: rex-7567-e27
-        uses: mbaraa/rex-action@v1.0
+        uses: mbaraa/rex-action@v1.2
         with:
           server-url: example.com
           token: ${{ secrets.REX_KEY }}
