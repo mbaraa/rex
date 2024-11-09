@@ -69,6 +69,8 @@ jobs:
           repo-name: repoName
           # commit-sha is optional :)
           commit-sha: ${{ github.sha }}
+          # repo-tag is optional :)
+          repo-tag: ${{ github.ref }}
 ```
 
 3.  Do a push and see the magic happen
