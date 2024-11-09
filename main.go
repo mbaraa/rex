@@ -61,7 +61,13 @@ func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	logsText, err := deployRepo(repoName)
+	commitSha := req.URL.Query().Get("commit_sha")
+	if len(repoName) == 0 {
+		res.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	logsText, err := deployRepo(repoName, commitSha)
 	if err != nil {
 		log.Println(err)
 		res.WriteHeader(http.StatusInternalServerError)
@@ -72,7 +78,7 @@ func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
 	res.Write(logsText)
 }
 
-func deployRepo(repoName string) ([]byte, error) {
+func deployRepo(repoName, commitSha string) ([]byte, error) {
 	repoDirectory := fmt.Sprintf("%s/%s", reposDir, repoName)
 
 	outBuff := bytes.NewBuffer([]byte{})
@@ -102,6 +108,7 @@ func deployRepo(repoName string) ([]byte, error) {
 	}
 
 	composeUp := exec.Command("docker", "compose", "up", "-d")
+	composeUp.Env = append(composeUp.Env, fmt.Sprintf("COMMIT_SHA=%s", commitSha))
 	composeUp.Stdout = outBuff
 	composeUp.Dir = repoDirectory
 	err = composeUp.Run()

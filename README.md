@@ -67,6 +67,8 @@ jobs:
           server-url: example.com
           token: ${{ secrets.REX_KEY }}
           repo-name: repoName
+          # commit-sha is optional :)
+          commit-sha: ${{ github.sha }}
 ```
 
 3.  Do a push and see the magic happen
