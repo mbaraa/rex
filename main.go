@@ -97,7 +97,7 @@ func deployRepo(repoName, commitSha, latestTag string) ([]byte, error) {
 		return outBuff.Bytes(), err
 	}
 
-	build := exec.Command("docker", "compose", "build")
+	build := exec.Command("docker", "compose", "build", "--no-cache")
 	build.Stdout = outBuff
 	build.Dir = repoDirectory
 	err = build.Run()
