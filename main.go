@@ -62,18 +62,10 @@ func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
 	}
 
 	commitSha := req.URL.Query().Get("commit_sha")
-	if len(repoName) == 0 {
-		res.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
 	latestTag := req.URL.Query().Get("latest_tag")
-	if len(repoName) == 0 {
-		res.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	composeFileName := req.URL.Query().Get("compose_file_name")
 
-	logsText, err := deployRepo(repoName, commitSha, latestTag)
+	logsText, err := deployRepo(repoName, commitSha, latestTag, composeFileName)
 	if err != nil {
 		log.Println(err)
 		res.WriteHeader(http.StatusInternalServerError)
@@ -84,7 +76,7 @@ func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
 	res.Write(logsText)
 }
 
-func deployRepo(repoName, commitSha, latestTag string) ([]byte, error) {
+func deployRepo(repoName, commitSha, latestTag, composeFileName string) ([]byte, error) {
 	repoDirectory := fmt.Sprintf("%s/%s", reposDir, repoName)
 
 	outBuff := bytes.NewBuffer([]byte{})
@@ -113,7 +105,13 @@ func deployRepo(repoName, commitSha, latestTag string) ([]byte, error) {
 		return outBuff.Bytes(), err
 	}
 
-	composeUp := exec.Command("docker", "compose", "up", "-d")
+	var composeUp *exec.Cmd
+	if composeFileName != "" {
+		composeUp = exec.Command("docker", "compose", "up", "-f", composeFileName, "-d")
+	} else {
+		composeUp = exec.Command("docker", "compose", "up", "-d")
+	}
+
 	composeUp.Env = append(composeUp.Env, fmt.Sprintf("COMMIT_SHA=%s", commitSha), fmt.Sprintf("LATEST_TAG=%s", latestTag))
 	composeUp.Stdout = outBuff
 	composeUp.Dir = repoDirectory
