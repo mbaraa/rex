@@ -91,7 +91,7 @@ func deployRepo(repoName, commitSha, latestTag, composeFileName string) ([]byte,
 
 	var build *exec.Cmd
 	if composeFileName != "" {
-		build = exec.Command("docker", "compose", "build", "-f", composeFileName, "--no-cache")
+		build = exec.Command("docker", "compose", "-f", composeFileName, "build", "--no-cache")
 	} else {
 		build = exec.Command("docker", "compose", "build", "--no-cache")
 	}
@@ -105,7 +105,7 @@ func deployRepo(repoName, commitSha, latestTag, composeFileName string) ([]byte,
 
 	var composeDown *exec.Cmd
 	if composeFileName != "" {
-		composeDown = exec.Command("docker", "compose", "down", "-f", composeFileName, "--volumes", "--rmi", "local")
+		composeDown = exec.Command("docker", "compose", "-f", composeFileName, "down", "--volumes", "--rmi", "local")
 	} else {
 		composeDown = exec.Command("docker", "compose", "down", "--volumes", "--rmi", "local")
 	}
@@ -119,7 +119,7 @@ func deployRepo(repoName, commitSha, latestTag, composeFileName string) ([]byte,
 
 	var composeUp *exec.Cmd
 	if composeFileName != "" {
-		composeUp = exec.Command("docker", "compose", "up", "-f", composeFileName, "-d")
+		composeUp = exec.Command("docker", "compose", "-f", composeFileName, "up", "-d")
 	} else {
 		composeUp = exec.Command("docker", "compose", "up", "-d")
 	}
