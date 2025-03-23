@@ -89,7 +89,13 @@ func deployRepo(repoName, commitSha, latestTag, composeFileName string) ([]byte,
 		return outBuff.Bytes(), err
 	}
 
-	build := exec.Command("docker", "compose", "build", "--no-cache")
+	var build *exec.Cmd
+	if composeFileName != "" {
+		build = exec.Command("docker", "compose", "build", "-f", composeFileName, "--no-cache")
+	} else {
+		build = exec.Command("docker", "compose", "build", "--no-cache")
+	}
+
 	build.Stdout = outBuff
 	build.Dir = repoDirectory
 	err = build.Run()
@@ -97,7 +103,13 @@ func deployRepo(repoName, commitSha, latestTag, composeFileName string) ([]byte,
 		return outBuff.Bytes(), err
 	}
 
-	composeDown := exec.Command("docker", "compose", "down", "--volumes", "--rmi", "local")
+	var composeDown *exec.Cmd
+	if composeFileName != "" {
+		composeDown = exec.Command("docker", "compose", "down", "-f", composeFileName, "--volumes", "--rmi", "local")
+	} else {
+		composeDown = exec.Command("docker", "compose", "down", "--volumes", "--rmi", "local")
+	}
+
 	composeDown.Stdout = outBuff
 	composeDown.Dir = repoDirectory
 	err = composeDown.Run()
