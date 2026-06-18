@@ -232,7 +232,6 @@ func handleDeployRepoCodeberg(res http.ResponseWriter, req *http.Request) {
 	//
 	// end of forgejo code
 
-	res.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if origin := req.Header.Get("Origin"); allowedOriginsMap[origin] || allowedOriginsMap["*"] {
 		res.Header().Set("Access-Control-Allow-Origin", allowedOrigins)
 	}
@@ -258,7 +257,10 @@ func handleDeployRepoCodeberg(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	res.Write(logsText)
+	log.Println(logsText)
+
+	res.WriteHeader(201)
+	res.Write([]byte("deployed"))
 }
 
 ////////////////////////////////
