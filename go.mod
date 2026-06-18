@@ -1,3 +1,3 @@
-module github.com/mbaraa/rex
+module codeberg.org/lordbaraa/rex
 
-go 1.20
+go 1.24
