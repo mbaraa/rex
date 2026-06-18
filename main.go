@@ -269,6 +269,8 @@ func handleDeployRepoCodeberg(res http.ResponseWriter, req *http.Request) {
 func deployRepo(repoName, commitSha, latestTag, composeFileName string) ([]byte, error) {
 	repoDirectory := fmt.Sprintf("%s/%s", reposDir, repoName)
 
+	log.Printf("Deploying %s...\n", repoDirectory)
+
 	outBuff := bytes.NewBuffer([]byte{})
 
 	pull := exec.Command("git", "pull")
@@ -321,6 +323,8 @@ func deployRepo(repoName, commitSha, latestTag, composeFileName string) ([]byte,
 	if err != nil {
 		return outBuff.Bytes(), err
 	}
+
+	log.Printf("Done deploying %s...\n", repoDirectory)
 
 	return outBuff.Bytes(), nil
 }
