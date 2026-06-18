@@ -2,14 +2,24 @@ package main
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+	"sync"
+	"time"
+
+	_ "embed"
 )
 
 var (
@@ -18,7 +28,37 @@ var (
 	portNumber        string
 	allowedOrigins    string
 	allowedOriginsMap = map[string]bool{}
+	//go:embed repo-configs.json
+	repoConfigsFile []byte
+	repoConfigs     = sync.OnceValue(func() RepoConfigs {
+		configs := map[string]RepoConfig{}
+		err := json.Unmarshal(repoConfigsFile, &configs)
+		if err != nil {
+			log.Panicln(err)
+		}
+
+		return RepoConfigs{
+			configs: configs,
+		}
+	})
 )
+
+type RepoConfig struct {
+	LocalName       string `json:"local_name"`
+	ComposeFileName string `json:"compose_file_name"`
+}
+
+type RepoConfigs struct {
+	configs map[string]RepoConfig
+}
+
+func (r RepoConfigs) Get(repoOwner, repoName string) (RepoConfig, error) {
+	if conf, ok := r.configs[repoOwner+"/"+repoName]; !ok {
+		return RepoConfig{}, errors.New("repo not configured")
+	} else {
+		return conf, nil
+	}
+}
 
 func init() {
 	flag.StringVar(&rexKey, "rex-key", os.Getenv("REX_AUTH_KEY"), "give me a secure key to use the GitHub action with")
@@ -29,7 +69,8 @@ func init() {
 }
 
 func main() {
-	http.HandleFunc("/deploy/", handleDeployRepo)
+	http.HandleFunc("GET /deploy/github", handleDeployRepoGitHub)
+	http.HandleFunc("POST /deploy/codeberg", handleDeployRepoCodeberg)
 	http.ListenAndServe(":"+portNumber, nil)
 }
 
@@ -43,14 +84,18 @@ func parseAllowedOringins() {
 	}
 }
 
-func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
+////////////////////////////////
+// GitHub rex-deploy action
+////////////////////////////////
+
+func handleDeployRepoGitHub(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	if origin := req.Header.Get("Origin"); allowedOriginsMap[origin] || allowedOriginsMap["*"] {
 		res.Header().Set("Access-Control-Allow-Origin", allowedOrigins)
 	}
 
 	token := req.Header.Get("Authorization")
-	if token != rexKey {
+	if token != "Bearer "+rexKey {
 		res.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -75,6 +120,151 @@ func handleDeployRepo(res http.ResponseWriter, req *http.Request) {
 
 	res.Write(logsText)
 }
+
+////////////////////////////////
+// Codeberg forgejo webhook
+////////////////////////////////
+
+// this code is a 1:1 translation from the JSON response example by forgejo
+// https://forgejo.org/docs/latest/user/webhooks/
+//
+
+type CodebergWebhookPayload struct {
+	Ref        string             `json:"ref"`
+	Before     string             `json:"before"`
+	After      string             `json:"after"`
+	CompareURL string             `json:"compare_url"`
+	Commits    []CodebergCommit   `json:"commits"`
+	Repository CodebergRepository `json:"repository"`
+	Pusher     CodebergUser       `json:"pusher"`
+	Sender     CodebergUser       `json:"sender"`
+}
+
+type CodebergCommit struct {
+	ID        string         `json:"id"`
+	Message   string         `json:"message"`
+	URL       string         `json:"url"`
+	Author    CodebergAuthor `json:"author"`
+	Committer CodebergAuthor `json:"committer"`
+	Timestamp time.Time      `json:"timestamp"`
+}
+
+type CodebergAuthor struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Username string `json:"username"`
+}
+
+type CodebergRepository struct {
+	ID              int          `json:"id"`
+	Owner           CodebergUser `json:"owner"`
+	Name            string       `json:"name"`
+	FullName        string       `json:"full_name"`
+	Description     string       `json:"description"`
+	Private         bool         `json:"private"`
+	Fork            bool         `json:"fork"`
+	HTMLURL         string       `json:"html_url"`
+	SSHURL          string       `json:"ssh_url"`
+	CloneURL        string       `json:"clone_url"`
+	Website         string       `json:"website"`
+	StarsCount      int          `json:"stars_count"`
+	ForksCount      int          `json:"forks_count"`
+	WatchersCount   int          `json:"watchers_count"`
+	OpenIssuesCount int          `json:"open_issues_count"`
+	DefaultBranch   string       `json:"default_branch"`
+	CreatedAt       time.Time    `json:"created_at"`
+	UpdatedAt       time.Time    `json:"updated_at"`
+}
+
+type CodebergUser struct {
+	ID        int    `json:"id"`
+	Login     string `json:"login"`
+	FullName  string `json:"full_name"`
+	Email     string `json:"email"`
+	AvatarURL string `json:"avatar_url"`
+	Username  string `json:"username"`
+}
+
+//
+// end of forgejo code
+
+func handleDeployRepoCodeberg(res http.ResponseWriter, req *http.Request) {
+	// this code is a 1:1 translation from the PHP example by forgejo
+	// https://forgejo.org/docs/latest/user/webhooks/
+	//
+
+	if req.Header.Get("Content-Type") != "application/json" {
+		res.WriteHeader(http.StatusBadRequest)
+		log.Printf("FAILED - not application/json - '. %s", req.Header.Get("Content-Type"))
+		return
+	}
+
+	headerSignature := req.Header.Get("X-Forgejo-Signature")
+	if headerSignature == "" {
+		log.Println("FAILED - header signature missing")
+		http.Error(res, "Signature missing", http.StatusUnauthorized)
+		return
+	}
+
+	payload, err := io.ReadAll(req.Body)
+	if err != nil {
+		log.Printf("FAILED - unable to read body: %v", err)
+		http.Error(res, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	mac := hmac.New(sha256.New, []byte(rexKey))
+	mac.Write(payload)
+	expectedSignature := hex.EncodeToString(mac.Sum(nil))
+
+	if !hmac.Equal([]byte(headerSignature), []byte(expectedSignature)) {
+		log.Println("FAILED - payload signature mismatch")
+		http.Error(res, "Invalid signature", http.StatusForbidden)
+		return
+	}
+
+	var reqBody CodebergWebhookPayload
+	err = json.Unmarshal(payload, &reqBody)
+	if err != nil {
+		log.Printf("FAILED - json decode - %v\n", err)
+		return
+	}
+	//
+	// end of forgejo code
+
+	res.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	if origin := req.Header.Get("Origin"); allowedOriginsMap[origin] || allowedOriginsMap["*"] {
+		res.Header().Set("Access-Control-Allow-Origin", allowedOrigins)
+	}
+
+	token := req.Header.Get("Authorization")
+	if token != "Bearer "+rexKey {
+		res.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	// repoName, commitSha, latestTag, composeFileName :=
+	repoConfig, err := repoConfigs().Get(reqBody.Repository.Owner.Username, reqBody.Repository.Name)
+	if err != nil {
+		log.Println(err)
+		http.Error(res, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	logsText, err := deployRepo(repoConfig.LocalName, reqBody.Commits[0].ID, "", repoConfig.ComposeFileName)
+	if err != nil {
+		log.Println(err)
+		res.WriteHeader(http.StatusInternalServerError)
+		res.Write(logsText)
+		return
+	}
+
+	res.Write(logsText)
+}
+
+////////////////////////////////
+// Actual docker deployer mf
+////////////////////////////////
 
 func deployRepo(repoName, commitSha, latestTag, composeFileName string) ([]byte, error) {
 	repoDirectory := fmt.Sprintf("%s/%s", reposDir, repoName)

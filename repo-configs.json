@@ -1,0 +1,10 @@
+{
+  "dankstuff/dankmuzikk-legacy": {
+    "local_name": "dankmuzikk/legacy",
+    "compose_file_name": "docker-compose-prod.yml"
+  },
+  "dankstuff/dankvizu": {
+    "local_name": "dankvizu",
+    "compose_file_name": "docker-compose.yml"
+  }
+}
