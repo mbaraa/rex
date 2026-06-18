@@ -71,7 +71,8 @@ func init() {
 func main() {
 	http.HandleFunc("GET /deploy/github", handleDeployRepoGitHub)
 	http.HandleFunc("POST /deploy/codeberg", handleDeployRepoCodeberg)
-	http.ListenAndServe(":"+portNumber, nil)
+	log.Printf("Starting http server on port %s\n", portNumber)
+	log.Fatalln(http.ListenAndServe(":"+portNumber, nil))
 }
 
 func parseAllowedOringins() {
@@ -243,11 +244,10 @@ func handleDeployRepoCodeberg(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// repoName, commitSha, latestTag, composeFileName :=
 	repoConfig, err := repoConfigs().Get(reqBody.Repository.Owner.Username, reqBody.Repository.Name)
 	if err != nil {
 		log.Println(err)
-		http.Error(res, "Bad request", http.StatusBadRequest)
+		http.Error(res, "Repo not found!", http.StatusNotFound)
 		return
 	}
 
