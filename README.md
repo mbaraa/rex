@@ -6,7 +6,7 @@ Redeploy docker compose containers after git push
 
 This will install Rex's server which will allow deploying your app
 
-1.  You can use the latest binary release in the [releases](https://github.com/mbaraa/rex/releases)
+1.  You can use the latest binary release in the [releases](https://codeberg.org/lordbaraa/rex/tags)
 2.  Or if that doesn't work, compile it yourself using
     - `go build -ldflags="-w -s"`
 3.  Set the environmental variables as showm in the `.env.example`
@@ -22,7 +22,9 @@ This will install Rex's server which will allow deploying your app
 | `github-username` | `REX_GITHUB_USERNAME` | Give me your GitHub username so I can pull repos' changes             |
 | `github-token`    | `REX_GITHUB_TOKEN`    | Give me your GitHub token so I can pull repos' changes                |
 
-4.  Install the systemd service, since I haven't figured out how to make this fully work in docker :(
+4. Modify `repo-configs.json` to your needs (if using codeberg)
+
+5. Install the systemd service, since I haven't figured out how to make this fully work in docker :(
 
 <!---->
 
@@ -76,3 +78,14 @@ jobs:
 ```
 
 3.  Do a push and see the magic happen
+
+### Adding the Codeberg webhook
+
+This where the fun begins (codeberg version).
+
+1. Add a global or per repo webhook
+
+2. Use the rex-key as secret and `Bearer {rex-key}` in Authorization
+
+3. Do a push and see the magic happen
+   i. a nice feature from codeberg that allows a dummy push, you might wanna try it
