@@ -68,7 +68,7 @@ func init() {
 }
 
 func main() {
-	http.HandleFunc("GET /deploy/github", handleDeployRepoGitHub)
+	http.HandleFunc("GET /deploy/", handleDeployRepoGitHub)
 	http.HandleFunc("POST /deploy/codeberg", handleDeployRepoCodeberg)
 	log.Printf("Starting http server on port %s\n", portNumber)
 	log.Fatalln(http.ListenAndServe(":"+portNumber, nil))
