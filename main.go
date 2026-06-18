@@ -6,7 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -54,7 +53,7 @@ type RepoConfigs struct {
 
 func (r RepoConfigs) Get(repoOwner, repoName string) (RepoConfig, error) {
 	if conf, ok := r.configs[repoOwner+"/"+repoName]; !ok {
-		return RepoConfig{}, errors.New("repo not configured")
+		return RepoConfig{}, fmt.Errorf("repo `%s/%s` not configured", repoOwner, repoName)
 	} else {
 		return conf, nil
 	}
