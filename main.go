@@ -257,7 +257,7 @@ func handleDeployRepoCodeberg(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Println(logsText)
+	log.Println(string(logsText))
 
 	res.WriteHeader(201)
 	res.Write([]byte("deployed"))
