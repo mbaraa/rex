@@ -236,6 +236,12 @@ func handleDeployRepoCodeberg(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Access-Control-Allow-Origin", allowedOrigins)
 	}
 
+	if len(reqBody.Commits) == 0 {
+		log.Println("Non commit trigger - skipping")
+		res.Write([]byte("Non commit trigger - skipping"))
+		return
+	}
+
 	token := req.Header.Get("Authorization")
 	if token != "Bearer "+rexKey {
 		res.WriteHeader(http.StatusUnauthorized)
